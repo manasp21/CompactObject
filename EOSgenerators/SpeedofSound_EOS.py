@@ -6,7 +6,9 @@ from scipy.integrate import cumulative_simpson
 
 
 #####################  SPEED-OF-SOUND-EOS  BEGIN  ##############################
-
+###### This part of code, citing from S K Greif, G Raaijmakers, K Hebeler, A Schwenk, A L Watts, Equation of state
+###### sensitivities when inferring neutron star and dense matter properties, Monthly Notices of the Royal Astronomical
+###### Society, Volume 485, Issue 4, June 2019, Pages 5363–5376, https://doi.org/10.1093/mnras/stz654
 
 class compute_EOS:
     def __init__(self, x_last, y_last, dydx_last, enablePTcheck=False) -> None:
