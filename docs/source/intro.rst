@@ -175,7 +175,7 @@ The nuclear physics quantities we consider are:
 
 There are more on constraining the EOS by Pure neutron matter (PNM):
 
-- **chiral EFT constraint** taken from `Marquez et al. (2024) <https://arxiv.org/abs/2407.18452>`_.
+- **chiral EFT constraint** taken from `Hebeler et al. (2013) <https://doi.org/10.1088/0004-637X/773/1/11>`_, `Huth, S., & others. (2022) <https://doi.org/10.1038/s41586-022-04750-w>`_ and same as people did in `Marquez et al. (2024) <https://arxiv.org/abs/2407.18452>`_ 
 - **pQCD constraint** taken from `Gorda et al. (2022) <https://arxiv.org/abs/2204.11877>`_.
 
 
