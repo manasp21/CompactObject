@@ -183,6 +183,9 @@ These can be computed from posterior samples (we will add the nuclear properties
 
 When performing real astrophysical sampling, it is crucial to sample the neutron star central density corresponding to each measurement used. For instance, if investigating the constraining effect of two mass-radius measurements on the EOS, you need to define two additional free parameters—the central densities for each measurement. Otherwise, the inference would not represent a full-scope EOS analysis. Therefore, our likelihood functions include a parameter :math:`d_1`, representing the density parameter of each observation.
 
+We derive posterior probability distributions and the Bayesian evidence with the nested sampling Monte Carlo algorithm MLFriends (`Buchner, 2014  <https://arxiv.org/abs/1407.5459>`_; `2019  <https://arxiv.org/abs/1707.04476>`_) using the [UltraNest](https://johannesbuchner.github.io/UltraNest/) package (`Buchner, 2021  <https://arxiv.org/abs/2101.09604>`_).
+
+
 Summary
 =======
 
