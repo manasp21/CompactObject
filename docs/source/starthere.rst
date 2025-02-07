@@ -27,12 +27,12 @@ Depending on Your Scientific Goal
 
    - **EOS Generators Tutorial:** Start with the `EOS Generators Tutorial <https://chunhuangphy.github.io/CompactObject/test_EOSgenerators.html>`_, which showcases all currently integrated EOS computations in the package. The supported EOS models include:
 
-     - **Relativistic Mean Field (RMF) Model**
-     - **Strangeon Star Model**
-     - **Quark Star Model:** MIT Bag Model
-     - **Polytropic Model**
-     - **Speed of Sound Model**
-     - **Density-Dependent EOS Model**
+     - **Relativistic Mean Field (RMF) Model**: Here we adopted the RMF model from the `(Lalazissis et al. 1997) <https://ui.adsabs.harvard.edu/link_gateway/1997PhRvC..55..540L/doi:10.1103/PhysRevC.55.540>`_ and `(Tolos et al. 2016) <https://arxiv.org/abs/1610.00919>`_.
+     - **Strangeon Star Model**: Original model proposed in `(Xu 2003) <https://ui.adsabs.harvard.edu/abs/2003ApJ...596L..59X/abstract>`_
+     - **Quark Star Model:** MIT Bag Model in `(Chodos 1974) <https://journals.aps.org/prd/abstract/10.1103/PhysRevD.9.3471>`_
+     - **Polytropic Model** proposed in `(Hebeler et al. 2013) <https://iopscience.iop.org/article/10.1088/0004-637X/773/1/11>`_, here we adapted the original code definition of "eos_core_pp" from NEoST software `(Raaijmakers et al. 2025) <https://joss.theoj.org/papers/10.21105/joss.06003.pdf>`_, see the page in `Polytrope model <https://github.com/xpsi-group/neost/blob/main/neost/eos/polytropes.py>`_.
+     - **Speed of Sound Model** proposed in `(Grief et al. 2019) <https://academic.oup.com/mnras/article/485/4/5363/5374528>`_.
+     - **Density-Dependent EOS Model** proposed in `(Typel et al. 2010) <https://journals.aps.org/prc/abstract/10.1103/PhysRevC.81.015803>`_.
      - *...and more*
 
 3. Using the Tolman–Oppenheimer–Volkoff (TOV) Solver
