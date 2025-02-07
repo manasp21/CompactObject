@@ -94,7 +94,8 @@ def fun_gamma_max(rho2, rho1, p1):
 # ----------------------------------------------------------------------------
 # Copyright (c) 2020-2025 the NEoST core team
 #
-# This function is adopted from part of NEoST software.
+# This function is adopted from part of NEoST software. part from 
+# https://github.com/xpsi-group/neost/blob/main/neost/eos/polytropes.py
 #
 # NEoST is free software: you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the Free
