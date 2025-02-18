@@ -147,7 +147,7 @@ Below are the commands to install and update the CompactObject package, along wi
 
 ## License
 
-Distributed under the MIT License. See `LICENSE.txt` for more information.
+Distributed under the GNU GPL-3.0 license. See `LICENSE.txt` for more information.
 
 <p align="right">(<a href="#compactobject">back to top</a>)</p>
 
