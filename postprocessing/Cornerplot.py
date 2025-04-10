@@ -77,22 +77,22 @@ def overlapping_corner_three(array1, array2, array3, param_labels=None,sample_la
         # Clear the existing diagonal histogram (which was automatically created by `corner`)
         ax.clear()
         param_name = param_labels[i] if param_labels else f"Param {i+1}"
-        ax.set_title(param_name, fontsize=20, pad=75)  # Increase padding to make space for mean/std
+        ax.set_title(param_name, fontsize=20, pad=75)  # Increase padding to make space for median/std
         
         # Plot unfilled histograms with consistent bins for each dataset on the diagonal
         for array, label, color, bins in zip(arrays, sample_labels, colors, [bin_edges[i]]*3):
             ax.hist(array[:, i], bins=bins, histtype='step', color=color, label=label, density=True)
 
-        # Compute and add mean and 68% quantile range in LaTeX format
+        # Compute and add median and 68% quantile range in LaTeX format
         for idx, (array, color) in enumerate(zip(arrays, colors), start=1):
-            mean = np.mean(array[:, i])
+            median = np.percentile(array[:, i], 50)
             lower_quantile = np.percentile(array[:, i], 16)
             upper_quantile = np.percentile(array[:, i], 84)
-            lower_diff = mean - lower_quantile
-            upper_diff = upper_quantile - mean
+            lower_diff = median - lower_quantile
+            upper_diff = upper_quantile - median
             # Use LaTeX-like format for displaying the uncertainties
             ax.text(0.5, 0.9 + 0.17 * idx, 
-                    f"${mean:.3f}_{{-{lower_diff:.3f}}}^{{+{upper_diff:.3f}}}$", 
+                    f"${median:.3f}_{{-{lower_diff:.3f}}}^{{+{upper_diff:.3f}}}$", 
                     color=color, transform=ax.transAxes, fontsize=16, ha='center')
 
         # Keep y-axis visible for the first histogram, x-axis visible for the last histogram
@@ -198,22 +198,22 @@ def overlapping_corner_two(array1, array2, param_labels=None, sample_labels=None
         # Clear the existing diagonal histogram (which was automatically created by `corner`)
         ax.clear()
         param_name = param_labels[i] if param_labels else f"Param {i+1}"
-        ax.set_title(param_name, fontsize=20, pad=55)  # Increase padding to make space for mean/std
+        ax.set_title(param_name, fontsize=20, pad=55)  # Increase padding to make space for median/std
         
         # Plot unfilled histograms with consistent bins for each dataset on the diagonal
         for array, label, color, bins in zip(arrays, sample_labels, colors, [bin_edges[i]]*3):
             ax.hist(array[:, i], bins=bins, histtype='step', color=color, label=label, density=True)
 
-        # Compute and add mean and 68% quantile range in LaTeX format
+        # Compute and add median and 68% quantile range in LaTeX format
         for idx, (array, color) in enumerate(zip(arrays, colors), start=1):
-            mean = np.mean(array[:, i])
+            median = np.percentile(array[:, i], 50)
             lower_quantile = np.percentile(array[:, i], 16)
             upper_quantile = np.percentile(array[:, i], 84)
-            lower_diff = mean - lower_quantile
-            upper_diff = upper_quantile - mean
+            lower_diff = median - lower_quantile
+            upper_diff = upper_quantile - median
             # Use LaTeX-like format for displaying the uncertainties
             ax.text(0.5, 0.9 + 0.17 * idx, 
-                    f"${mean:.3f}_{{-{lower_diff:.3f}}}^{{+{upper_diff:.3f}}}$", 
+                    f"${median:.3f}_{{-{lower_diff:.3f}}}^{{+{upper_diff:.3f}}}$", 
                     color=color, transform=ax.transAxes, fontsize=16, ha='center')
 
         # Keep y-axis visible for the first histogram, x-axis visible for the last histogram
