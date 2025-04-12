@@ -3,50 +3,9 @@ import numpy as np
 from TOVsolver import unit
 from TOVsolver.main import OutputMR
 
-def maxium_central_density(energy_density, pressure, central_densitys=np.logspace(14.3, 15.6, 5) * unit.g_cm_3, num2=30):
-    """Outputs the maxium central density of a stable EoS
-    Args:
-        energy_density (numpy 1Darray): Density of EoS
-        pressure (numpy 1Darray): Pressure of EoS
-        central_densitys (numpy 1Darray): The range of central density
-        num2 (int): The number of segments in the density interval of second search. At least 5 points
-    Returns:
-        density (float): The maxium central density, in unit.g_cm_3
-    """
-    ############## Below is the main part of two searches for peaks
-    ######## First search
-    Ms = [-1,-2] # Meaningless initialization, only to ensure that the following 'if (i>0) and (Ms [-1]<=Ms [-2])' statements can run properly
-    store_d_range = [central_densitys[-2], central_densitys[-1]] # When the following loop does not output a result, initialization here will have its meaning
-    # Find the extremum point within the predetermined range of central density and return the central density near the extremum point
-    for i, rho in enumerate(central_densitys):
-        M, R = OutputMR('', energy_density, pressure, [rho])[0]
-        Ms.append(M)
-        if (i>0) and (Ms[-1] <= Ms[-2]):
-            store_d_range = [central_densitys[i-2], central_densitys[i]] 
-            break
-    Ms_larg = Ms[-1] # Used to store the mass corresponding to the maximum density during the first peak search
-    
-    ######## Second search
-    Ms = [-1,-2] # Reinitialize
-    # Update and refine the central density range, and ultimately return the central density of the extremum points
-    store_d_range = np.geomspace(store_d_range[0], store_d_range[1], num2) # At least 5 points
-    # Note that the first and last points have already been calculated, so there is no need to traverse them
-    for i, rho in enumerate(store_d_range[1:-1]):
-        M, R = OutputMR('', energy_density, pressure, [rho])[0]
-        Ms.append(M)
-        if Ms[-1] <= Ms[-2]:    # Note that due to the second peak search refining the interval, the result is generally not obtained at the first point.
-                                # Therefore, initializing Ms=[-1, -2] is acceptable
-            return store_d_range[1:][i-1]
-    # When the above peak search fails, continue comparing the last point
-    if Ms_larg < Ms[-1]:
-        return store_d_range[-2]
-    else:
-        return store_d_range[-1]
-    
-
-def maxium_central_density_2(energy_density, pressure, 
+def maximum_central_density(energy_density, pressure, 
                              rho_lo=10**14.3 * unit.g_cm_3, rho_up=10**15.6 * unit.g_cm_3, 
-                             tol_for_mass=1e-2, tol_for_rho=1e-5, threshold_R=40*unit.km):
+                             tol_for_mass=1e-3, tol_for_rho=1e-7, threshold_R=40*unit.km):
     """
     Find the center density of a stable point using dichotomy approach
     Args:
@@ -58,7 +17,7 @@ def maxium_central_density_2(energy_density, pressure,
         tol_for_rho (float): Relative tolerance of the density
         threshold_R (float): Threshold of Radius. Once the minmum Radius of the star is lager than the value of threshold, it means the results are very unphysical
     Returns:
-        density (float): The maxium central density, in unit.g_cm_3
+        density (float): The maxium central density, in g_cm_3
         mass_large (float): The maximum mass, in mass of sun
         radius_small (float): The corresponding radius of the maximum mass, in km
     """
@@ -125,7 +84,7 @@ def maxium_central_density_2(energy_density, pressure,
     # If R_min > threshold_R, then the results are definitely not physical.
     if R_min>threshold_R:
         # print('R',R_min/unit.km)
-        return rhos[Catch], Ms_larg/unit.Msun, R_min/unit.km # density in natural unit, mass in sun
+        return rhos[Catch]/unit.g_cm_3, Ms_larg/unit.Msun, R_min/unit.km # density in g_cm3, mass in sun, radius in km
     
     ###### Start looping code *****
     # Update and refine the central density range, and ultimately return the central density of the maximum points
@@ -142,7 +101,7 @@ def maxium_central_density_2(energy_density, pressure,
                     rho = rhos[1]
                     # Note that the useful accumulation amounts here are 0 and 2 points, and the point to be solved is in the middle, so we take the value of Cumul_rho2s
                     result = OutputMR('', energy_density, pressure, [rho])[0]
-                    Ms.insert(1, result["M"]) # Insert points into the Ms of the original 3 points
+                    Ms.insert(1, result[0]) # Insert points into the Ms of the original 3 points
 
                     # Firstly, we store the data, and secondly, we judge the data
                     if Ms[1] >= Ms[2]:
@@ -153,7 +112,7 @@ def maxium_central_density_2(energy_density, pressure,
                     # Note that the useful accumulation amounts here are 0, 1, and 2 points, and the point to be solved is on the right side, so we take Cumul_rho2s [: 3]
                     result = OutputMR('', energy_density, pressure, [rho])[0]
                     # Since the refinement calculation is carried out on the basis of the previous stage, if d2_min is continuously performed, The operation of d2_max=query_nearest-values (* paras_for_strink_0) is actually cumbersome
-                    Ms.insert(3, result["M"]) # Insert a point into Ms with 4 points
+                    Ms.insert(3, result[0]) # Insert a point into Ms with 4 points
 
                     if Ms[3] >= Ms[2]:
                         Catch = 3
@@ -166,13 +125,13 @@ def maxium_central_density_2(energy_density, pressure,
                     rho = rhos[1]
                     # Note that the useful accumulation amounts here are 0 and 4 points, and the point to be calculated is on the left side of the middle, so we take Cumul_rho2s
                     result = OutputMR('', energy_density, pressure, [rho])[0]
-                    Ms.insert(1, result["M"])
+                    Ms.insert(1, result[0])
 
                 elif i == 2:
                     rho = rhos[2]
                     # Note that the useful accumulation amounts here are 0 and 1 points, and the point to be solved is on the right side, so we take Cumul_rho2s [: 2]
                     result = OutputMR('', energy_density, pressure, [rho])[0]
-                    Ms.insert(2, result["M"])
+                    Ms.insert(2, result[0])
 
                     if Ms[1] >= Ms[2]:
                         Peak == True
@@ -182,7 +141,7 @@ def maxium_central_density_2(energy_density, pressure,
                     rho = rhos[3]
                     # Note that the useful accumulation amounts here are 0, 1, and 2 points, and the point to be solved is on the right side, so we take Cumul_rho2s [: 3]
                     result = OutputMR('', energy_density, pressure, [rho])[0]
-                    Ms.insert(3, result["M"])
+                    Ms.insert(3, result[0])
 
                     if Ms[2] >= Ms[3]:
                         Peak == True
@@ -204,13 +163,13 @@ def maxium_central_density_2(energy_density, pressure,
                     rho = rhos[1]
                     # Note that the useful accumulation amounts here are 0 and 4 points, and the point to be calculated is on the left side of the middle, so we take Cumul_rho2s
                     result = OutputMR('', energy_density, pressure, [rho])[0]
-                    Ms.insert(1, result["M"])
+                    Ms.insert(1, result[0])
 
                 elif i == 2:
                     rho = rhos[2]
                     # Note that the useful accumulation amounts here are 0 and 1 points, and the point to be solved is on the right side, so we take Cumul_rho2s [: 2]
                     result = OutputMR('', energy_density, pressure, [rho])[0]
-                    Ms.insert(2, result["M"])
+                    Ms.insert(2, result[0])
 
                     if (Ms[1] >= Ms[2]) and (Ms[1] > Ms[0]):
                         Peak == True
@@ -220,7 +179,7 @@ def maxium_central_density_2(energy_density, pressure,
                     rho = rhos[3]
                     # Note that the useful accumulation amounts here are 0, 1, and 2 points, and the point to be solved is on the right side, so we take Cumul_rho2s [: 3]
                     result = OutputMR('', energy_density, pressure, [rho])[0]
-                    Ms.insert(3, result["M"])
+                    Ms.insert(3, result[0])
 
                     if (Ms[2] >= Ms[3]) and (Ms[2] > Ms[1]):
                         Peak == True
@@ -252,4 +211,4 @@ def maxium_central_density_2(energy_density, pressure,
         # print('Peak:',Peak)
         # print('Ms',np.array(Ms)/unit.Msun)
 
-    return rhos[Catch], Ms_larg/unit.Msun, R_min/unit.km
+    return rhos[Catch]/unit.g_cm_3, Ms_larg/unit.Msun, R_min/unit.km
