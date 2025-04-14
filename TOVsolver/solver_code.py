@@ -11,11 +11,10 @@ def m1_from_mc_m2(mc, m2):
 
     Args:
         mc (float): chrip mass of a GW event, unit in solar mass.
-        m2 (float or numpy array): the determined mass for one of the star, this
-        is computed from sampling of EoS.
+        m2 (float or numpy array): the determined mass for one of the star, this is computed from sampling of EoS.
 
     Returns:
-        m1 (float or numpy array): the companion star mass in solar mass.
+        m1 (array): the companion star mass in solar mass.
     """
     m2 = np.array(m2)
     num1 = (2.0 / 3.0) ** (1.0 / 3.0) * mc**5.0
@@ -88,17 +87,13 @@ def TOV_def(r, y, inveos, ad_index):
 
     Args:
         r (float): raius as integrate varible
-        y (psudo-varible): containing pressure, mass, h and b as intergarte varibles
-        to solve out the TOV equation
-        inveos: the invert of the eos, pressure and energy density relation to integrate
-        and interpolate.
+        y (psudo-varible): containing pressure, mass, h and b as intergarte varibles to solve out the TOV equation
+        inveos: the invert of the eos, pressure and energy density relation to integrate and interpolate.
 
     Returns:
-        Mass (array): The array that contains all the Stars' masses, in M_sun as a
-        Units.
+        Mass (array): The array that contains all the Stars' masses, in M_sun as a Units.
         Radius (array): The array that contains all the Stars's radius, in km.
-        Tidal Deformability (array): The array that contains correpsonding Tidal property,
-        These are dimension-less.
+        Tidal Deformability (array): The array that contains correpsonding Tidal property, These are dimension-less.
     """
     pres, m, h, b = y
 
@@ -155,27 +150,17 @@ def tidal_deformability(y2, Mns, Rns):
 
 # Function solves the TOV equation, returning mass and radius
 def solveTOV_tidal(center_rho, energy_density, pressure):
-    """Solve TOV equation from given Equation of state in the neutron star
-    core density range
+    """Solve TOV equation from given Equation of state in the neutron star core density range
 
     Args:
-        center_rho(array): This is the energy density here is fixed in main
-        that is np.logspace(14.3, 15.6, 50)
-        energy_density (array): Desity array of the neutron star EoS, in MeV/fm^{-3}
-        Notice here for simiplicity, we omitted G/c**4 magnitude, so
-        (value in MeV/fm^{-3})*G/c**4, could convert to the energy density we are
-        using, please check the Test_EOS.csv to double check the order of magnitude.
-
-        pressure (array): Pressure array of neutron star EoS, also in nautral unit
-        with MeV/fm^{-3}, still please check the Test_EOS.csv, the conversion is
-        (value in dyn/cm3)*G/c**4.
+        center_rho(array): This is the energy density here is fixed in main that is np.logspace(14.3, 15.6, 50)
+        energy_density (array): Desity array of the neutron star EoS, in MeV/fm^{-3}. Notice here for simiplicity, we omitted G/c**4 magnitude, so (value in MeV/fm^{-3})*G/c**4, could convert to the energy density we are using, please check the Test_EOS.csv to double check the order of magnitude.
+        pressure (array): Pressure array of neutron star EoS, also in nautral unit with MeV/fm^{-3}, still please check the Test_EOS.csv, the conversion is (value in dyn/cm3)*G/c**4.
 
     Returns:
-        Mass (array): The array that contains all the Stars' masses, in M_sun as a
-        Units.
+        Mass (array): The array that contains all the Stars' masses, in M_sun as a Units.
         Radius (array): The array that contains all the Stars's radius, in km.
-        Tidal Deformability (array): The array that contains correpsonding Tidal property,
-        These are dimension-less.
+        Tidal Deformability (array): The array that contains correpsonding Tidal property, These are dimension-less.
     """
     # eos = UnivariateSpline(np.log10(eps), np.log10(pres), k=1, s=0)
     # inveos = UnivariateSpline(np.log10(pressure), np.log10(energy_density), k=1, s=0)
@@ -242,21 +227,16 @@ def solveTOV_tidal(center_rho, energy_density, pressure):
 
 
 def solveTOV(center_rho, Pmin, eos, inveos):
-    """Solve TOV equation from given Equation of state in the neutron star 
-    core density range
+    """Solve TOV equation from given Equation of state in the neutron star core density range
 
     Args:
-        center_rho(array): This is the energy density here is fixed in main
-        that is range [10**14.3, 10**15.6] * unit.g_cm_3
-        
+        center_rho(float): The energy density in unit unit.g_cm_3
         Pmin (float): In unit.G / unit.c**4
-        
         eos (function): pressure vs. energy density, energy density in unit.G / unit.c**2, pressure in unit.G / unit.c**4
-        
         inveos (function): energy density vs. pressure
 
     Returns:
-        Mass (float): The Stars' masses
+        Mass (float): The Stars' mass
         Radius (float): The Stars's radius
     """
     r = 4.441e-16 * unit.cm
