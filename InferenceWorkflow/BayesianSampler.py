@@ -93,3 +93,81 @@ def UltranestSamplerResume(parameters,likelihood,prior,nsteps,live_points,max_ca
     result = sampler.run(min_num_live_points=live_points,max_ncalls=max_calls)
     flat_samples = sampler.results['samples']
     return flat_samples
+
+def DynestySampler(parameters, likelihood, prior, step, live_points, max_calls, num_workers=1):
+    """Dynesty based nested sampler by given likelihood, prior, and parameters.
+    
+    Args:
+        parameters (array): parameters array that want to be constrained.
+        likelihood (array): theta as input. likelihood function defined by user.
+        prior (array): unit cube as input, prior function defined by user.
+        step (int): as a step sampler, define this inference want to be divided to how many steps.
+        live_points (int): define how many live points will be used.
+        max_calls (int): define after how many steps the sampler will stop work.
+        num_workers (int): number of parallel processes to use.
+        
+    Returns:
+        flat_samples (array): equal weighted samples of whole posterior parameter space.
+    """
+    import dynesty
+    from dynesty import utils as dyfunc
+    from multiprocessing import Pool
+    import numpy as np
+    
+    ndim = len(parameters)
+    
+    # Set up parallel processing if num_workers > 1
+    if num_workers > 1:
+        # Create a Pool object with the specified number of workers
+        with Pool(num_workers) as pool:
+            # Create sampler with the pool
+            sampler = dynesty.NestedSampler(
+                likelihood,
+                prior,
+                ndim,
+                nlive=live_points,
+                bound='multi',        # Uses multiple bounding ellipsoids
+                sample='slice',       # Use slice sampling like ultranest example
+                slices=step,          # Number of slices to use
+                pool=pool,            # Pass the pool object directly
+                queue_size=num_workers # Size of the parallel queue
+            )
+            
+            # Run the sampler
+            sampler.run_nested(
+                maxcall=max_calls,
+                dlogz=0.01  # Stopping criterion based on evidence precision
+            )
+            
+            # Get results
+            results = sampler.results
+            
+            # Get equal weighted posterior samples
+            weights = np.exp(results.logwt - results.logz[-1])
+            flat_samples = dyfunc.resample_equal(results.samples, weights)
+    else:
+        # No parallelization
+        sampler = dynesty.NestedSampler(
+            likelihood,
+            prior,
+            ndim,
+            nlive=live_points,
+            bound='multi',
+            sample='slice',
+            slices=step
+        )
+        
+        # Run the sampler
+        sampler.run_nested(
+            maxcall=max_calls,
+            dlogz=0.01
+        )
+        
+        # Get results
+        results = sampler.results
+        
+        # Get equal weighted posterior samples
+        weights = np.exp(results.logwt - results.logz[-1])
+        flat_samples = dyfunc.resample_equal(results.samples, weights)
+    
+    return flat_samples
