@@ -226,39 +226,103 @@ def solveTOV_tidal(center_rho, energy_density, pressure):
     return Mb * c**2.0 / G * unit.g, Rns * unit.cm, tidal
 
 
-def solveTOV(center_rho, Pmin, eos, inveos):
-    """Solve TOV equation from given Equation of state in the neutron star core density range
-
+def solveTOV(center_rho, Pmin, eos, inveos, max_radius=30e5*unit.cm):
+    """Solve the Tolman-Oppenheimer-Volkoff (TOV) equation to determine the structure of a neutron star
+    
+    This function numerically integrates the TOV equations from the center outward to find the 
+    mass and radius of a neutron star with a given central density and equation of state.
+    The integration uses an adaptive step size method to ensure numerical stability,
+    especially near the surface where pressure gradients become steep.
+    
     Args:
-        center_rho(float): The energy density in unit unit.g_cm_3
-        Pmin (float): In unit.G / unit.c**4
-        eos (function): pressure vs. energy density, energy density in unit.G / unit.c**2, pressure in unit.G / unit.c**4
-        inveos (function): energy density vs. pressure
-
+        center_rho (float): The central energy density of the neutron star in unit.g_cm_3
+        Pmin (float): Minimum pressure threshold that defines the star's surface, in unit.G / unit.c**4
+        eos (function): Function mapping energy density to pressure (ρ → P)
+                        Takes energy density in unit.G / unit.c**2, returns pressure in unit.G / unit.c**4
+        inveos (function): Inverse equation of state, function mapping pressure to energy density (P → ρ)
+        max_radius (float, optional): Safety parameter to prevent runaway integration in case
+                                     the star's surface is not properly detected. Defaults to 30e5*unit.cm
+    
     Returns:
-        Mass (float): The Stars' mass
-        Radius (float): The Stars's radius
+        Mass (float): The neutron star's gravitational mass in appropriate units (M_sol)
+        Radius (float): The neutron star's radius in appropriate units (km)
+    
+    Notes:
+        - Integration begins at a small non-zero radius (r = 1e-18 * unit.cm) to avoid
+          the coordinate singularity at r=0
+        - Initial pressure is calculated using a Taylor expansion around r=0 since
+          the TOV equation has an indeterminate form (0/0) at the origin
+        - We use adaptive step sizing for numerical stability
+        - Multiple stopping conditions ensure robustness against EoS-related numerical issues
     """
-    r = 4.441e-16 * unit.cm
-    dr = 10.0 * unit.cm
+    
+    # Initialize at a small radius to avoid singularity at r=0
+    # Small enough for valid Taylor expansion but large enough to avoid floating-point issues
+    r = 1e-18 * unit.cm  # Defined small length scale for computation
+    dr = 10.0 * unit.cm  # Initial step size
 
+    # Central pressure from equation of state
     pcent = eos(center_rho)
+    
+    # Calculate initial pressure using Taylor expansion around r=0
+    # This approximation is derived from the TOV equation as r→0, avoiding the 0/0 indeterminate form
+    # P(r) ≈ P(0) - (4π/3)(P+ρ)(3P+ρ)r² for small r
     P0 = (
         pcent
         - (4.0 * pi / 3.0) * (pcent + center_rho) * (3.0 * pcent + center_rho) * r**2.0
     )
+    
+    # Initial mass assuming uniform density within tiny sphere
     m0 = 4.0 / 3.0 * pi * center_rho * r**3.0
+    
+    # Initialize state vector [pressure, mass]
     stateTOV = np.array([P0, m0])
-
-    sy = ode(TOV, None).set_integrator("dopri5")
-
-    # have been modified from Irida to this integrator
+    
+    # Use a more stable integrator for stiff ODEs with appropriate error tolerances
+    sy = ode(TOV, None).set_integrator("dopri5", atol=1e-8, rtol=1e-8)
+    
+    # Set initial values and pass the inverse EoS function to the integrator
     sy.set_initial_value(stateTOV, r).set_f_params(inveos)
-
-    while sy.successful() and stateTOV[0] > Pmin:
+    
+    # Variables to track integration progress and ensure stability
+    prev_mass = m0
+    rho_current = center_rho
+    
+    # Integration loop with multiple stopping conditions:
+    # 1. Integration must be successful
+    # 2. Pressure must remain above minimum threshold (defines stellar surface)
+    # 3. Radius must not exceed maximum value (prevents runaway)
+    # 4. Density must remain reasonably high (additional surface detection)
+    
+    while (sy.successful() and 
+           stateTOV[0] > Pmin and 
+           sy.t < max_radius and
+           rho_current > 0.01 * center_rho):  # Stop if density drops too much
+        
         stateTOV = sy.integrate(sy.t + dr)
+        
+        # 4. Calculate current density
+        rho_current = inveos(stateTOV[0])
+        
+       
+        # 5. Sanity check for mass (it should never decrease)
+        if stateTOV[1] < prev_mass:
+            break
+        prev_mass = stateTOV[1]
+        
+        # 6. Adaptive step size with safety factor and restrictions
         dpdr, dmdr = TOV(sy.t + dr, stateTOV, inveos)
-        dr = 0.46 * (1.0 / stateTOV[1] * dmdr - 1.0 / stateTOV[0] * dpdr) ** (-1.0)
-
+        delta= 0.23 ## optimal delta https://articles.adsabs.harvard.edu/pdf/1971ApJ...170..299B
+        dr = delta / ((1.0 / stateTOV[1]) * dmdr - (1.0 / stateTOV[0]) * dpdr)         
+        
+        # 8. Reduce step size near surface where gradients are steep
+        if stateTOV[0] < Pmin * 10:
+            dr = min(dr, 50.0 * unit.cm)
+    
+    # Clean up results - if we broke early for some reason
+    if not sy.successful() or stateTOV[0] <= 0:
+        # Return the last valid values
+        return prev_mass * unit.c**2 / unit.G, sy.t
+    
     # at the end of this function, we rescale the quantities back
     return stateTOV[1] * unit.c**2 / unit.G, sy.t
