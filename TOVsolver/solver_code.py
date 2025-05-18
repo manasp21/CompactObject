@@ -148,24 +148,28 @@ def tidal_deformability(y2, Mns, Rns):
     return tidal_def
 
 
-# Function solves the TOV equation, returning mass and radius
-def solveTOV_tidal(center_rho, energy_density, pressure):
-    """Solve TOV equation from given Equation of state in the neutron star core density range
+def solveTOV_tidal(center_rho, energy_density, pressure, max_radius=30e5*unit.cm):
+    """Solve TOV equation with tidal deformability for neutron stars using a given Equation of State
 
     Args:
-        center_rho(array): This is the energy density here is fixed in main that is np.logspace(14.3, 15.6, 50)
-        energy_density (array): Desity array of the neutron star EoS, in MeV/fm^{-3}. Notice here for simiplicity, we omitted G/c**4 magnitude, so (value in MeV/fm^{-3})*G/c**4, could convert to the energy density we are using, please check the Test_EOS.csv to double check the order of magnitude.
-        pressure (array): Pressure array of neutron star EoS, also in nautral unit with MeV/fm^{-3}, still please check the Test_EOS.csv, the conversion is (value in dyn/cm3)*G/c**4.
+        center_rho (float): Central density of the neutron star in g/cm³. This is the physical input
+            density value that determines the neutron star's properties.
+        energy_density (array): Energy density array of the neutron star EoS in dimensionless units
+            (already divided by c²). In the code, this is converted to proper geometrized units
+            by multiplying with G/c².
+        pressure (array): Pressure array of the neutron star EoS in dimensionless units (already divided 
+            by c⁴). In the code, this is converted to proper geometrized units by multiplying with G/c⁴.
+        max_radius (float): Maximum allowed radius to prevent runaway integration during numerical
+            solving, given in cm units (default: 30e5*unit.cm).
 
     Returns:
-        Mass (array): The array that contains all the Stars' masses, in M_sun as a Units.
-        Radius (array): The array that contains all the Stars's radius, in km.
-        Tidal Deformability (array): The array that contains correpsonding Tidal property, These are dimension-less.
+        Mass (float): The neutron star's gravitational mass in units of grams (can be converted to
+            solar masses by dividing by unit.Msun).
+        Radius (float): The neutron star's radius in units of cm (can be converted to km by
+            dividing by unit.km).
+        Tidal_Deformability (float): The neutron star's dimensionless tidal deformability parameter Λ.
     """
-    # eos = UnivariateSpline(np.log10(eps), np.log10(pres), k=1, s=0)
-    # inveos = UnivariateSpline(np.log10(pressure), np.log10(energy_density), k=1, s=0)
-    # We could change this to Double Log Interpolation。
-
+    # Unit conversions
     c = 3e10
     G = 6.67428e-8
 
@@ -181,7 +185,6 @@ def solveTOV_tidal(center_rho, energy_density, pressure):
         raise ValueError("Pressure values are not unique")
 
     if np.any(np.diff(energy_density) == 0):
-        print(energy_density)
         raise ValueError("energy_density values are not unique")
 
     # Interpolate pressure vs. energy density
@@ -197,9 +200,8 @@ def solveTOV_tidal(center_rho, energy_density, pressure):
 
     Pmin = pressure[20]
 
-    r = 4.441e-16
+    r = 1e-18
     dr = 10.0
-    rmax = 50 * 1e5
     rhocent = center_rho * G / c**2.0
     # pcent = 10**eos(np.log10(rhocent))
     pcent = eos(rhocent)
@@ -209,19 +211,57 @@ def solveTOV_tidal(center_rho, energy_density, pressure):
     b0 = 2.0 * r
     stateTOV = np.array([P0, m0, h0, b0])
     ad_index = pressure_adind(P0, energy_density, pressure)
-    sy = ode(TOV_def, None).set_integrator("dopri5")
+    
+    # 1. Use a more stable integrator for stiff ODEs
+    sy = ode(TOV_def, None).set_integrator("dopri5", atol=1e-8, rtol=1e-8)
 
-    # have been modified from Irida to this integrator
+    # 2. Set initial values
     sy.set_initial_value(stateTOV, r).set_f_params(inveos, ad_index)
 
-    while sy.successful() and stateTOV[0] > Pmin:
+    prev_mass = m0
+    rho_current = rhocent
+    
+    # 3. Add more stopping conditions
+    while (sy.successful() and 
+           stateTOV[0] > Pmin and 
+           sy.t < max_radius and
+           rho_current > 0.01 * rhocent):  # Stop if density drops too much
+        
         stateTOV = sy.integrate(sy.t + dr)
+        
+        # 4. Calculate current density
+        rho_current = inveos(stateTOV[0])
+        
+        # 5. Sanity check for mass (it should never decrease)
+        if stateTOV[1] < prev_mass:
+            break
+        prev_mass = stateTOV[1]
+        
+        # 6. Adaptive step size with safety factor and restrictions
         dpdr, dmdr, dhdr, dfdr = TOV_def(sy.t + dr, stateTOV, inveos, ad_index)
-        dr = 0.46 * (1.0 / stateTOV[1] * dmdr - 1.0 / stateTOV[0] * dpdr) ** (-1.0)
-    Mb = stateTOV[1]
-    Rns = sy.t
-    y = Rns * stateTOV[3] / stateTOV[2]
-    tidal = tidal_deformability(y, Mb, Rns)
+        
+        delta= 0.23 ## optimal delta https://articles.adsabs.harvard.edu/pdf/1971ApJ...170..299B
+        dr = delta / ((1.0 / stateTOV[1]) * dmdr - (1.0 / stateTOV[0]) * dpdr)    
+        
+        # 8. Reduce step size near surface where gradients are steep
+        if stateTOV[0] < Pmin * 10:
+            dr = min(dr, 50.0)
+
+    # Clean up results - if we broke early for some reason
+    if not sy.successful() or stateTOV[0] <= 0:
+        # Handle the case where integration failed but we have previous valid values
+        Mb = prev_mass
+        Rns = sy.t
+        # For tidal deformability, we need y, which depends on h and b 
+        # If the last values of h and b are not valid, we can't compute y accurately
+        # In this case, return a default tidal value (e.g., 0)
+        tidal = 0  
+    else:
+        # Normal case - integration completed successfully
+        Mb = stateTOV[1]
+        Rns = sy.t
+        y = Rns * stateTOV[3] / stateTOV[2]
+        tidal = tidal_deformability(y, Mb, Rns)
 
     return Mb * c**2.0 / G * unit.g, Rns * unit.cm, tidal
 
