@@ -83,18 +83,19 @@ def TOV(r, y, inveos):
 
 
 def TOV_def(r, y, inveos, ad_index):
-    """a function that packing the whole TOV equations set
+    """Packs the complete set of TOV equations for neutron stars with tidal deformability
 
     Args:
-        r (float): raius as integrate varible
-        y (psudo-varible): containing pressure, mass, h and b as intergarte varibles to solve out the TOV equation
-        inveos: the invert of the eos, pressure and energy density relation to integrate and interpolate.
+        r (float): Radius as integration variable
+        y (array): Array of integration variables containing [pressure, mass, h, b]
+            where h and b are variables used for tidal deformability calculation
+        inveos (function): Inverse equation of state function that maps pressure to energy density
+        ad_index (float): Adiabatic index used in the tidal deformability equations
 
     Returns:
-        Mass (array): The array that contains all the Stars' masses, in M_sun as a Units.
-        Radius (array): The array that contains all the Stars's radius, in km.
-        Tidal Deformability (array): The array that contains correpsonding Tidal property, These are dimension-less.
+        array: Array containing derivatives [dpdr, dmdr, dhdr, dfdr] for the integration
     """
+    
     pres, m, h, b = y
 
     # energy_density = 10**inveos(np.log10(pres))
